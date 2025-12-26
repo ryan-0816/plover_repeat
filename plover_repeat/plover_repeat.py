@@ -8,6 +8,7 @@ from plover.steno import Stroke
 class PloverRepeat:
     history_file = os.path.join(CONFIG_DIR, 'repeat_strokes.txt')
     debug_file = os.path.join(CONFIG_DIR, 'repeat_debug.txt')
+    memory_file = os.path.join(CONFIG_DIR, 'repeat_memory.txt')
     MAX_HISTORY = 100
     
     # Binary repeat mappings (right hand: -FPLTD)
@@ -17,19 +18,26 @@ class PloverRepeat:
         'RAO*UPT': 11, 'R*EUPT': 12, 'RA*EUPT': 13, 'RO*EUPT': 14, 'RAO*EUPT': 15,
     }
     
-    MARK_STROKE = 'PHA*RBG'      # Mark current position
-    REPEAT_TO_STROKE = 'REP/TO'  # Repeat from mark to current
+    MEMORY_STROKE = 'PH*EPL'      # Mark/replay memory stroke
     UNDO_STROKE = '*'             # Undo stroke
     
     def __init__(self, engine: StenoEngine) -> None:
         self.engine = engine
         self.stroke_history = deque(maxlen=self.MAX_HISTORY)
-        self.mark_position = None
+        self.is_recording_memory = False
         self._processing = False
         self.debug_log = None
         
     def start(self) -> None:
         os.makedirs(CONFIG_DIR, exist_ok=True)
+        
+        # Clear repeat_strokes.txt on startup
+        try:
+            with open(self.history_file, 'w', encoding='utf-8') as f:
+                f.write('')
+            self.log(f"Cleared {self.history_file} on startup")
+        except Exception as e:
+            self.log(f"Error clearing history file: {e}")
         
         # Open debug log
         self.debug_log = open(self.debug_file, 'a', encoding='utf-8')
@@ -81,6 +89,49 @@ class PloverRepeat:
     def save_history_live(self):
         """Save history immediately (live updates)"""
         self.save_history()
+    
+    def is_memory_file_empty(self):
+        """Check if memory file is empty or doesn't exist"""
+        if not os.path.exists(self.memory_file):
+            return True
+        try:
+            with open(self.memory_file, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+                return len(content) == 0
+        except Exception as e:
+            self.log(f"Error checking memory file: {e}")
+            return True
+    
+    def save_to_memory(self, stroke_str):
+        """Save a stroke to the memory file"""
+        try:
+            with open(self.memory_file, 'a', encoding='utf-8') as f:
+                f.write(f"{stroke_str}\n")
+            self.log(f"Saved stroke to memory: {stroke_str}")
+        except Exception as e:
+            self.log(f"Error saving to memory: {e}")
+    
+    def load_and_clear_memory(self):
+        """Load strokes from memory file and clear it"""
+        strokes = []
+        try:
+            if os.path.exists(self.memory_file):
+                with open(self.memory_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        stroke = line.strip()
+                        if stroke:
+                            strokes.append(stroke)
+                self.log(f"Loaded {len(strokes)} strokes from memory")
+                
+                # Clear the memory file
+                with open(self.memory_file, 'w', encoding='utf-8') as f:
+                    f.write('')
+                self.log(f"Cleared memory file")
+        except Exception as e:
+            self.log(f"Error loading/clearing memory: {e}")
+        
+        return strokes
         
     def on_stroked(self, stroke: Stroke):
         if self._processing:
@@ -99,19 +150,23 @@ class PloverRepeat:
             self.repeat_last_n(n)
             return
             
-        # Check for mark
-        if stroke_str == self.MARK_STROKE:
-            self.mark_position = len(self.stroke_history)
-            self.log(f"Mark set at position {self.mark_position}")
-            return
-            
-        # Check for repeat-to-mark
-        if stroke_str == self.REPEAT_TO_STROKE:
-            self.log(f"Repeat-to-mark command detected")
-            # Delete the repeat-to-mark command stroke itself FIRST
+        # Check for memory stroke
+        if stroke_str == self.MEMORY_STROKE:
+            self.log(f"Memory stroke detected")
+            # Send undo right after
             self.send_undo()
-            # Then repeat from mark
-            self.repeat_from_mark()
+            
+            # Check if memory file is empty
+            if self.is_memory_file_empty():
+                # Start recording to memory
+                self.is_recording_memory = True
+                self.log("Started recording to memory")
+            else:
+                # Replay memory and clear it
+                self.log("Replaying memory")
+                strokes = self.load_and_clear_memory()
+                self.replay_strokes(strokes)
+                self.is_recording_memory = False
             return
         
         # Check for undo stroke
@@ -126,6 +181,10 @@ class PloverRepeat:
                 self.log(f"Removed stroke from history: {removed}")
                 self.save_history_live()
             return
+        
+        # If recording to memory, save this stroke
+        if self.is_recording_memory:
+            self.save_to_memory(stroke_str)
             
         # Record stroke in history (if not a repeat command)
         self.stroke_history.append(stroke_str)
@@ -144,6 +203,21 @@ class PloverRepeat:
             self.log(f"Error sending undo: {e}")
         finally:
             self._processing = False
+    
+    def replay_strokes(self, strokes):
+        """Replay a list of strokes"""
+        self.log(f"Replaying {len(strokes)} strokes: {strokes}")
+        
+        self._processing = True
+        try:
+            for stroke_str in strokes:
+                stroke = Stroke.from_steno(stroke_str)
+                self.engine._machine_stroke_callback(stroke)
+                self.log(f"Replayed stroke: {stroke_str}")
+        except Exception as e:
+            self.log(f"Error replaying strokes: {e}")
+        finally:
+            self._processing = False
         
     def repeat_last_n(self, n):
         """Repeat the last n strokes"""
@@ -152,42 +226,4 @@ class PloverRepeat:
             return
             
         strokes_to_repeat = list(self.stroke_history)[-n:]
-        self.log(f"Repeating strokes: {strokes_to_repeat}")
-        
-        self._processing = True
-        try:
-            for stroke_str in strokes_to_repeat:
-                stroke = Stroke.from_steno(stroke_str)
-                self.engine._machine_stroke_callback(stroke)
-                self.log(f"Replayed stroke: {stroke_str}")
-        except Exception as e:
-            self.log(f"Error repeating strokes: {e}")
-        finally:
-            self._processing = False
-        
-    def repeat_from_mark(self):
-        """Repeat all strokes from mark to current position"""
-        if self.mark_position is None:
-            self.log("No mark set, cannot repeat-to-mark")
-            return
-            
-        # Get strokes from mark position to current
-        history_list = list(self.stroke_history)
-        if self.mark_position >= len(history_list):
-            self.log(f"Mark position {self.mark_position} is beyond history length {len(history_list)}")
-            return
-            
-        strokes_to_repeat = history_list[self.mark_position:]
-        self.log(f"Repeating {len(strokes_to_repeat)} strokes from mark position {self.mark_position}")
-        self.log(f"Strokes: {strokes_to_repeat}")
-        
-        self._processing = True
-        try:
-            for stroke_str in strokes_to_repeat:
-                stroke = Stroke.from_steno(stroke_str)
-                self.engine._machine_stroke_callback(stroke)
-                self.log(f"Replayed stroke: {stroke_str}")
-        except Exception as e:
-            self.log(f"Error repeating from mark: {e}")
-        finally:
-            self._processing = False
+        self.replay_strokes(strokes_to_repeat)
