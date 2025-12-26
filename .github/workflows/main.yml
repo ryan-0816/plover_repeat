@@ -1,11 +1,9 @@
 name: Test
-
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
-
 jobs:
   lint:
     name: Lint Code
@@ -33,7 +31,7 @@ jobs:
     
     - name: Lint with pylint
       run: |
-        pylint plover_repeat.py --exit-zero
+        pylint plover_repeat/plover_repeat.py --exit-zero
 
   test:
     name: Test Plugin
@@ -58,11 +56,11 @@ jobs:
     
     - name: Verify plugin syntax
       run: |
-        python -m py_compile plover_repeat.py
+        python -m py_compile plover_repeat/plover_repeat.py
     
     - name: Check imports
       run: |
-        python -c "import ast; ast.parse(open('plover_repeat.py').read())"
+        python -c "import ast; ast.parse(open('plover_repeat/plover_repeat.py').read())"
 
   release:
     name: Create Release
@@ -87,4 +85,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: plover-repeat-plugin
-        path: plover_repeat.py
+        path: plover_repeat/
