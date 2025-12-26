@@ -18,8 +18,10 @@ class PloverRepeat:
         'RAO*UPT': 11, 'R*EUPT': 12, 'RA*EUPT': 13, 'RO*EUPT': 14, 'RAO*EUPT': 15,
     }
     
-    MEMORY_STROKE = 'PH*EPL'      # Mark/replay memory stroke
-    UNDO_STROKE = '*'             # Undo stroke
+    MEMORY_TOGGLE_STROKE = 'PH*EPL'   # Toggle logging to memory
+    MEMORY_PASTE_STROKE = 'PH*EPLT'   # Paste memory contents
+    MEMORY_RESET_STROKE = 'PH*ERPL'   # Reset and clear memory
+    UNDO_STROKE = '*'                  # Undo stroke
     
     def __init__(self, engine: StenoEngine) -> None:
         self.engine = engine
@@ -90,18 +92,6 @@ class PloverRepeat:
         """Save history immediately (live updates)"""
         self.save_history()
     
-    def is_memory_file_empty(self):
-        """Check if memory file is empty or doesn't exist"""
-        if not os.path.exists(self.memory_file):
-            return True
-        try:
-            with open(self.memory_file, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                return len(content) == 0
-        except Exception as e:
-            self.log(f"Error checking memory file: {e}")
-            return True
-    
     def save_to_memory(self, stroke_str):
         """Save a stroke to the memory file"""
         try:
@@ -111,8 +101,8 @@ class PloverRepeat:
         except Exception as e:
             self.log(f"Error saving to memory: {e}")
     
-    def load_and_clear_memory(self):
-        """Load strokes from memory file and clear it"""
+    def load_memory(self):
+        """Load strokes from memory file without clearing"""
         strokes = []
         try:
             if os.path.exists(self.memory_file):
@@ -123,15 +113,19 @@ class PloverRepeat:
                         if stroke:
                             strokes.append(stroke)
                 self.log(f"Loaded {len(strokes)} strokes from memory")
-                
-                # Clear the memory file
-                with open(self.memory_file, 'w', encoding='utf-8') as f:
-                    f.write('')
-                self.log(f"Cleared memory file")
         except Exception as e:
-            self.log(f"Error loading/clearing memory: {e}")
+            self.log(f"Error loading memory: {e}")
         
         return strokes
+    
+    def clear_memory(self):
+        """Clear the memory file"""
+        try:
+            with open(self.memory_file, 'w', encoding='utf-8') as f:
+                f.write('')
+            self.log(f"Cleared memory file")
+        except Exception as e:
+            self.log(f"Error clearing memory: {e}")
         
     def on_stroked(self, stroke: Stroke):
         if self._processing:
@@ -150,35 +144,49 @@ class PloverRepeat:
             self.repeat_last_n(n)
             return
             
-        # Check for memory stroke
-        if stroke_str == self.MEMORY_STROKE:
-            self.log(f"Memory stroke detected")
+        # Check for memory toggle stroke
+        if stroke_str == self.MEMORY_TOGGLE_STROKE:
+            self.log(f"Memory toggle stroke detected")
             # Send undo right after
             self.send_undo()
             
-            # Check if memory file is empty
-            if self.is_memory_file_empty():
-                # Start recording to memory
-                self.is_recording_memory = True
+            # Toggle recording state
+            self.is_recording_memory = not self.is_recording_memory
+            if self.is_recording_memory:
                 self.log("Started recording to memory")
             else:
-                # Replay memory and clear it
-                self.log("Replaying memory")
-                strokes = self.load_and_clear_memory()
-                self.replay_strokes(strokes)
-                self.is_recording_memory = False
+                self.log("Stopped recording to memory")
+            return
+        
+        # Check for memory paste stroke
+        if stroke_str == self.MEMORY_PASTE_STROKE:
+            self.log(f"Memory paste stroke detected")
+            # Send undo right after
+            self.send_undo()
+            
+            # Load and replay memory
+            strokes = self.load_memory()
+            self.replay_strokes(strokes)
+            return
+        
+        # Check for memory reset stroke
+        if stroke_str == self.MEMORY_RESET_STROKE:
+            self.log(f"Memory reset stroke detected")
+            # Send undo right after
+            self.send_undo()
+            
+            # Clear memory file
+            self.clear_memory()
+            self.is_recording_memory = False
+            self.log("Memory cleared and recording stopped")
             return
         
         # Check for undo stroke
         if stroke_str == self.UNDO_STROKE:
-            # Remove the undo stroke itself
-            if len(self.stroke_history) > 0:
-                self.stroke_history.pop()
-                self.log(f"Removed undo stroke from history")
-            # Remove the stroke before it
+            # Remove the stroke before the undo (from history)
             if len(self.stroke_history) > 0:
                 removed = self.stroke_history.pop()
-                self.log(f"Removed stroke from history: {removed}")
+                self.log(f"Removed stroke from history due to undo: {removed}")
                 self.save_history_live()
             return
         
@@ -193,7 +201,7 @@ class PloverRepeat:
     
     def send_undo(self):
         """Send an undo stroke to delete the previous output"""
-        self.log("Sending undo stroke to delete repeat command")
+        self.log("Sending undo stroke to delete command")
         self._processing = True
         try:
             undo_stroke = Stroke.from_steno(self.UNDO_STROKE)
