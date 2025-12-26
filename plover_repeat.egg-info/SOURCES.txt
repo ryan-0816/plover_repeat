@@ -1,0 +1,13 @@
+LICENSE
+README.md
+setup.cfg
+setup.py
+plover_repeat/__init__.py
+plover_repeat/repeat.py
+plover_repeat.egg-info/PKG-INFO
+plover_repeat.egg-info/SOURCES.txt
+plover_repeat.egg-info/dependency_links.txt
+plover_repeat.egg-info/entry_points.txt
+plover_repeat.egg-info/requires.txt
+plover_repeat.egg-info/top_level.txt
+plover_repeat.egg-info/zip-safe
