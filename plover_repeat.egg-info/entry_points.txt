@@ -1,2 +1,0 @@
-[plover.command]
-plover_repeat = plover_repeat
