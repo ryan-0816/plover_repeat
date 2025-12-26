@@ -34,10 +34,11 @@ Repository = "https://github.com/yourusername/plover-repeat"
 Issues = "https://github.com/yourusername/plover-repeat/issues"
 
 [project.entry-points."plover.extension"]
-plover_repeat = "plover_repeat:PloverRepeat"
+plover_repeat = "plover_repeat.plover_repeat:PloverRepeat"
 
 [tool.setuptools]
 license-files = []
+zip-safe = true
 
 [tool.setuptools.packages.find]
 include = ["plover_repeat*"]
