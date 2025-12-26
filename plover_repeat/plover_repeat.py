@@ -93,9 +93,10 @@ class PloverRepeat:
         if stroke_str in self.REPEAT_STROKES:
             n = self.REPEAT_STROKES[stroke_str]
             self.log(f"Repeat command detected: repeat last {n} strokes")
-            self.repeat_last_n(n)
-            # Delete the repeat command stroke itself using undo
+            # Delete the repeat command stroke itself FIRST
             self.send_undo()
+            # Then repeat the strokes
+            self.repeat_last_n(n)
             return
             
         # Check for mark
@@ -107,9 +108,10 @@ class PloverRepeat:
         # Check for repeat-to-mark
         if stroke_str == self.REPEAT_TO_STROKE:
             self.log(f"Repeat-to-mark command detected")
-            self.repeat_from_mark()
-            # Delete the repeat-to-mark command stroke itself using undo
+            # Delete the repeat-to-mark command stroke itself FIRST
             self.send_undo()
+            # Then repeat from mark
+            self.repeat_from_mark()
             return
         
         # Check for undo stroke
