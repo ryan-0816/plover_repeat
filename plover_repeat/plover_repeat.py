@@ -19,6 +19,7 @@ class PloverRepeat:
     
     MARK_STROKE = 'PHA*RBG'      # Mark current position
     REPEAT_TO_STROKE = 'REP/TO'  # Repeat from mark to current
+    UNDO_STROKE = '*'             # Undo stroke
     
     def __init__(self, engine: StenoEngine) -> None:
         self.engine = engine
@@ -93,6 +94,8 @@ class PloverRepeat:
             n = self.REPEAT_STROKES[stroke_str]
             self.log(f"Repeat command detected: repeat last {n} strokes")
             self.repeat_last_n(n)
+            # Delete the repeat command stroke itself using undo
+            self.send_undo()
             return
             
         # Check for mark
@@ -105,12 +108,40 @@ class PloverRepeat:
         if stroke_str == self.REPEAT_TO_STROKE:
             self.log(f"Repeat-to-mark command detected")
             self.repeat_from_mark()
+            # Delete the repeat-to-mark command stroke itself using undo
+            self.send_undo()
+            return
+        
+        # Check for undo stroke
+        if stroke_str == self.UNDO_STROKE:
+            # Remove the undo stroke itself
+            if len(self.stroke_history) > 0:
+                self.stroke_history.pop()
+                self.log(f"Removed undo stroke from history")
+            # Remove the stroke before it
+            if len(self.stroke_history) > 0:
+                removed = self.stroke_history.pop()
+                self.log(f"Removed stroke from history: {removed}")
+                self.save_history_live()
             return
             
         # Record stroke in history (if not a repeat command)
         self.stroke_history.append(stroke_str)
         self.save_history_live()
         self.log(f"Stroke added to history. Total: {len(self.stroke_history)}")
+    
+    def send_undo(self):
+        """Send an undo stroke to delete the previous output"""
+        self.log("Sending undo stroke to delete repeat command")
+        self._processing = True
+        try:
+            undo_stroke = Stroke.from_steno(self.UNDO_STROKE)
+            self.engine._machine_stroke_callback(undo_stroke)
+            self.log("Undo stroke sent")
+        except Exception as e:
+            self.log(f"Error sending undo: {e}")
+        finally:
+            self._processing = False
         
     def repeat_last_n(self, n):
         """Repeat the last n strokes"""
