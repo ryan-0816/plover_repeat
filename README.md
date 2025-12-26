@@ -17,11 +17,11 @@ Base stroke is `R*PT`, then `AOEU` as binary for how far back you want to repeat
 
 | Stroke   | Value | Stroke    | Value | Stroke     | Value |
 | -------- | ----- | --------- | ----- | ---------- | ----- |
-| `RA*PT`  | 1     | `RO*EPT`  | 6     | `R*EUPT`   | 12    |
-| `RO*PT`  | 2     | `RAO*EPT` | 7     | `RA*EUPT`  | 13    |
-| `RAO*PT` | 3     | `R*UPT`   | 8     | `RO*EUPT`  | 14    |
-| `R*EPT`  | 4     | `RA*UPT`  | 9     | `RAO*EUPT` | 15    |
-| `RA*EPT` | 5     | `RO*UPT`  | 10    | `RAO*UPT`  | 11    |
+| `RA*PT`  | 1     | `RO*EPT`  | 6     | `RAO*UPT`  | 11    |
+| `RO*PT`  | 2     | `RAO*EPT` | 7     | `R*EUPT`   | 12    |
+| `RAO*PT` | 3     | `R*UPT`   | 8     | `RA*EUPT`  | 13    |
+| `R*EPT`  | 4     | `RA*UPT`  | 9     | `RO*EUPT`  | 14    |
+| `RA*EPT` | 5     | `RO*UPT`  | 10    | `RAO*EUPT` | 15    |
 
 
 **Example:** Type "hello there" then stroke `RO*PT` to output "hello there" again.
