@@ -15,14 +15,14 @@ Record a sequence of strokes and replay them repeatedly on the go
 ### Binary Repeat (1-15 strokes)
 Base stroke is `R*PT`, then `AOEU` as binary for how far back you want to repeat, up to 15.
 
-| Strokes | Repeats | Strokes | Repeats | Strokes | Repeats |
-|---------|---------|---------|---------|---------|---------|
-| `RA*PT` | 1 | `RO*EPT` | 6 | `R*EUPT` | 12 |
-| `RO*PT` | 2 | `RAO*EPT` | 7 | `RA*EUPT` | 13 |
-| `RAO*PT` | 3 | `R*UPT` | 8 | `RO*EUPT` | 14 |
-| `R*EPT` | 4 | `RA*UPT` | 9 | `RAO*EUPT` | 15 |
-| `RA*EPT` | 5 | `RO*UPT` | 10 | | |
-| | | `RAO*UPT` | 11 | | |
+| Stroke   | Value | Stroke    | Value | Stroke     | Value |
+| -------- | ----- | --------- | ----- | ---------- | ----- |
+| `RA*PT`  | 1     | `RO*EPT`  | 6     | `R*EUPT`   | 12    |
+| `RO*PT`  | 2     | `RAO*EPT` | 7     | `RA*EUPT`  | 13    |
+| `RAO*PT` | 3     | `R*UPT`   | 8     | `RO*EUPT`  | 14    |
+| `R*EPT`  | 4     | `RA*UPT`  | 9     | `RAO*EUPT` | 15    |
+| `RA*EPT` | 5     | `RO*UPT`  | 10    | `RAO*UPT`  | 11    |
+
 
 **Example:** Type "hello there" then stroke `RO*PT` to output "hello there" again.
 
