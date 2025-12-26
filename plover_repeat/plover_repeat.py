@@ -15,7 +15,6 @@ class PloverRepeat:
     memory_file = os.path.join(CONFIG_DIR, 'repeat_memory.txt')
     MAX_HISTORY = 15
     
-    # Binary repeat mappings (right hand: -FPLTD)
     REPEAT_STROKES = {
         'RA*PT': 1, 'RO*PT': 2, 'RAO*PT': 3, 'R*EPT': 4, 'RA*EPT': 5,
         'RO*EPT': 6, 'RAO*EPT': 7, 'R*UPT': 8, 'RA*UPT': 9, 'RO*UPT': 10,
@@ -143,7 +142,7 @@ class PloverRepeat:
         if stroke_str in self.REPEAT_STROKES:
             n = self.REPEAT_STROKES[stroke_str]
             self.log(f"Repeat command detected: repeat last {n} strokes")
-            # Delete the repeat command stroke itself FIRST
+            # Delete the repeat command stroke itself
             self.send_undo()
             # Then repeat the strokes
             self.repeat_last_n(n)
