@@ -6,6 +6,10 @@ from plover.oslayer.config import CONFIG_DIR
 from plover.steno import Stroke
 
 class PloverRepeat:
+    # ===== DEBUG TOGGLE - Set to False to disable all debug logging =====
+    DEBUG_ENABLED = True
+    # ====================================================================
+    
     history_file = os.path.join(CONFIG_DIR, 'repeat_strokes.txt')
     debug_file = os.path.join(CONFIG_DIR, 'repeat_debug.txt')
     memory_file = os.path.join(CONFIG_DIR, 'repeat_memory.txt')
@@ -18,9 +22,9 @@ class PloverRepeat:
         'RAO*UPT': 11, 'R*EUPT': 12, 'RA*EUPT': 13, 'RO*EUPT': 14, 'RAO*EUPT': 15,
     }
     
-    MEMORY_TOGGLE_STROKE = 'PH*EPL'   # Toggle logging to memory
-    MEMORY_PASTE_STROKE = 'PH*EPLT'   # Paste memory contents
-    MEMORY_RESET_STROKE = 'PH*ERPL'   # Reset and clear memory
+    MEMORY_TOGGLE_STROKE = 'PO*FP'   # Toggle logging to memory
+    MEMORY_PASTE_STROKE = 'SKWR*PL'   # Paste memory contents
+    MEMORY_RESET_STROKE = 'R*ET'   # Reset and clear memory
     UNDO_STROKE = '*'                  # Undo stroke
     
     def __init__(self, engine: StenoEngine) -> None:
@@ -33,6 +37,11 @@ class PloverRepeat:
     def start(self) -> None:
         os.makedirs(CONFIG_DIR, exist_ok=True)
         
+        # Open debug log only if debugging is enabled
+        if self.DEBUG_ENABLED:
+            self.debug_log = open(self.debug_file, 'a', encoding='utf-8')
+            self.log(f"=== PloverRepeat started ===")
+        
         # Clear repeat_strokes.txt on startup
         try:
             with open(self.history_file, 'w', encoding='utf-8') as f:
@@ -40,10 +49,6 @@ class PloverRepeat:
             self.log(f"Cleared {self.history_file} on startup")
         except Exception as e:
             self.log(f"Error clearing history file: {e}")
-        
-        # Open debug log
-        self.debug_log = open(self.debug_file, 'a', encoding='utf-8')
-        self.log(f"=== PloverRepeat started ===")
         
         self.engine.hook_connect('stroked', self.on_stroked)
         self.load_history()
@@ -58,8 +63,8 @@ class PloverRepeat:
             self.debug_log = None
     
     def log(self, message):
-        """Write to debug log with timestamp"""
-        if self.debug_log:
+        """Write to debug log with timestamp (only if debugging enabled)"""
+        if self.DEBUG_ENABLED and self.debug_log:
             timestamp = datetime.now().strftime('%F %T')
             self.debug_log.write(f"[{timestamp}] {message}\n")
             self.debug_log.flush()
