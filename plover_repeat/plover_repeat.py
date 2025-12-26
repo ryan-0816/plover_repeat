@@ -13,7 +13,7 @@ class PloverRepeat:
     history_file = os.path.join(CONFIG_DIR, 'repeat_strokes.txt')
     debug_file = os.path.join(CONFIG_DIR, 'repeat_debug.txt')
     memory_file = os.path.join(CONFIG_DIR, 'repeat_memory.txt')
-    MAX_HISTORY = 100
+    MAX_HISTORY = 15
     
     # Binary repeat mappings (right hand: -FPLTD)
     REPEAT_STROKES = {
